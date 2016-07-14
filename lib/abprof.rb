@@ -20,7 +20,7 @@ module ABProf
       end
     end
 
-    def self.read_loop
+    def self.read_once
       STDERR.puts "WORKER #{Process.pid}: read loop"
       @input ||= ""
       @input += STDIN.gets
@@ -34,6 +34,8 @@ module ABProf
           iters = command[5..-1].to_i
           run_n iters
           STDOUT.write "OK\n"
+          STDOUT.flush  # Why does this synchronous file descriptor not flush when given a string with a newline? Ugh!
+          STDERR.puts "WORKER #{Process.pid}: finished command ITERS: OK"
         else
           STDERR.puts "Unrecognized ABProf command: #{command.inspect}!"
           exit -1
@@ -42,7 +44,9 @@ module ABProf
     end
 
     def self.start
-      read_loop
+      loop do
+        read_once
+      end
     end
   end
 
@@ -65,14 +69,12 @@ module ABProf
         exec command_line
       end
       @out_writer.close
-      @out_writer = nil
       @in_reader.close
-      @in_reader = nil
 
       @debug = opts[:debug]
       STDERR.puts "Controller spawned #{@pid} (debug: #{@debug.inspect})"
       # Sleep briefly to allow process startup. How does this usually get fixed?
-      sleep 0.5
+      #sleep 0.5
     end
 
     def quit
@@ -83,7 +85,7 @@ module ABProf
     def kill
       STDERR.puts "Controller of #{@pid}: DIE"
       ::Process.detach @pid
-      ::Process.kill @pid
+      ::Process.kill "TERM", @pid
     end
 
     def run_iters(n)
@@ -97,7 +99,8 @@ module ABProf
         # Read and block
         output = @out_reader.gets
         ignored_out += output.length
-        puts "Process #{@pid} out: #{output.inspect}" if @debug
+        puts "Controller of #{@pid} out: #{output.inspect}" if @debug
+        STDERR.puts "Controller of #{@pid} out: #{output.inspect}"
         if output =~ /^OK$/   # These anchors match newlines, too
           state = :succeeded
           break

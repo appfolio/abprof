@@ -31,7 +31,7 @@ BANNER
   opt :debug1,      "Print first-process output to console"
   opt :debug2,      "Print second-process output to console"
   opt :pvalue,      "Probability of a false negative", :default => 0.05
-  opt :burnin,      "'Burn in' repetitions before real trials",  :default => 100
+  opt :burnin,      "'Burn in' repetitions before real trials",  :default => 50
   opt :max_trials,  "Maximum number of sample sets from each process", :default => 10_000
   opt :iters_per_trial, "Iterations per sample set", :default => 100
 end
@@ -47,10 +47,8 @@ process1 = ABProf::ABProcess.new command1, :debug => OPTS[:debug1]
 process2 = ABProf::ABProcess.new command2, :debug => OPTS[:debug2]
 
 # Burn-in
-OPTS[:burnin].times do
-  process1.run_iters OPTS[:burnin]
-  process2.run_iters OPTS[:burnin]
-end
+process1.run_iters OPTS[:burnin]
+process2.run_iters OPTS[:burnin]
 
 # Sampling
 
