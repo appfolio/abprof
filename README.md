@@ -90,6 +90,10 @@ somewhere else before, but I can't tell if I really did or if I
 misunderstood or hallucinated it. Either way, why isn't this a
 standard approach that's built into most profiling tools?
 
+After I started implementation I found out that optcarrot, used by the
+Ruby core team for profiling, is already using this technique (!) -- I
+stole a few tricks from their implementation.
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/appfolio/abprof. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.

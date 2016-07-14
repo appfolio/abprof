@@ -2,6 +2,7 @@
 
 require "trollop"
 require "abprof"
+require "statsample"
 
 OPTS = Trollop::options do
   banner <<BANNER
@@ -32,7 +33,7 @@ BANNER
   opt :debug2,      "Print second-process output to console"
   opt :pvalue,      "Probability of a false negative", :default => 0.05
   opt :burnin,      "'Burn in' repetitions before real trials",  :default => 50
-  opt :max_trials,  "Maximum number of sample sets from each process", :default => 10_000
+  opt :max_trials,  "Maximum number of sample sets from each process", :default => 1000
   opt :iters_per_trial, "Iterations per sample set", :default => 100
 end
 
@@ -51,7 +52,29 @@ process1.run_iters OPTS[:burnin]
 process2.run_iters OPTS[:burnin]
 
 # Sampling
+samples_so_far = 0
+# Statsample Vectors
+results1 = []
+results2 = []
+OPTS[:max_trials].times do |i|
+  # Add a sample to each set, with the total time for :iters_per_trial iterations.
+  # Alternate run order on successive iterations.
+  if i.even?
+    results1.push process1.run_iters(OPTS[:iters_per_trial])
+    results2.push process2.run_iters(OPTS[:iters_per_trial])
+  else
+    results2.push process2.run_iters(OPTS[:iters_per_trial])
+    results1.push process1.run_iters(OPTS[:iters_per_trial])
+  end
 
+  next unless results1.size > 2
+  # Evaluate the Welch's t-test
+  t = Statsample::Test.t_two_samples_independent(results1.to_vector, results2.to_vector)
+  p_val = t.probability_not_equal_variance
+  STDERR.puts "Current Welch's T-test p not equal: #{p_val.inspect}"
+
+  break if p_val < OPTS[:pvalue]
+end
 
 # Clean up processes
 process1.kill

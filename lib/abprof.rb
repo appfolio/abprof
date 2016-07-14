@@ -6,14 +6,21 @@ require "abprof/version"
 #   Test process responds "OK\n" or "NOT OK\n" or crashes; QUIT requires no response.
 
 module ABProf
+  def self.debug
+    @debug
+  end
+  def self.debug=(new_val)
+    @debug = new_val
+  end
+
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
   class ABWorker
     def debug string
-      STDERR.puts string
+      STDERR.puts(string) if ABProf.debug
     end
     def self.debug string
-      STDERR.puts string
+      STDERR.puts(string) if ABProf.debug
     end
 
     def self.iteration(&block)
@@ -30,7 +37,7 @@ module ABProf
     def self.read_once
       debug "WORKER #{Process.pid}: read loop"
       @input ||= ""
-      @input += STDIN.gets
+      @input += (STDIN.gets || "")
       debug "WORKER #{Process.pid}: Input #{@input.inspect}"
       if @input["\n"]
         command, @input = @input.split("\n", 2)
@@ -62,7 +69,7 @@ module ABProf
     attr_reader :last_iters
 
     def debug string
-      STDERR.puts string
+      STDERR.puts(string) if ABProf.debug
     end
 
     def initialize command_line, opts = {}
