@@ -1,8 +1,15 @@
 # Abprof
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/abprof`. To experiment with that code, run `bin/console` for an interactive prompt.
+ABProf attempts to use simple A/B test statistical logic and apply it
+to the question, "which of these two programs is faster?"
 
-TODO: Delete this and the text above, and describe your gem
+Most commonly, you profile by running a program a certain number of
+times ("okay, burn it into cache for 100 iterations, then run it 5000
+times and divide the total time by 5000"). Then, you make changes to
+your program and do the same thing again to compare.
+
+Real statisticians inform us that there are a few problems with that
+approach :-)
 
 ## Installation
 
@@ -22,7 +29,25 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Loading and running a program is slow, and it adds a lot of variable
+overhead which can make it hard to sample the specific operations that
+you want to measure. So ABProf prefers to run both programs and then
+just sample them on demand. That requires a bit of an interface for
+the programs you're running.
+
+In Ruby, there's an ABProf library you can use which will take care of
+that interface. That's the easiest way to use it, especially since
+you're running a benchmark anyway and would need some structure around
+your code.
+
+In the future there may also be a "just run the program, even though
+that's slow" mode.
+
+### Comparing Rubies
+
+I'm AppFolio's Ruby fellow, so I'm writing this to compare two
+different locally-built Ruby implementations for speed. Here's the
+easiest way to do that:
 
 ## Development
 
