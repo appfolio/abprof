@@ -9,25 +9,32 @@ module ABProf
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
   class ABWorker
+    def debug string
+      STDERR.puts string
+    end
+    def self.debug string
+      STDERR.puts string
+    end
+
     def self.iteration(&block)
       @iter_block = block
     end
 
     def self.run_n(n)
-      STDERR.puts "WORKER #{Process.pid}: running #{n} times"
+      debug "WORKER #{Process.pid}: running #{n} times"
       n.times do
         @iter_block.call
       end
     end
 
     def self.read_once
-      STDERR.puts "WORKER #{Process.pid}: read loop"
+      debug "WORKER #{Process.pid}: read loop"
       @input ||= ""
       @input += STDIN.gets
-      STDERR.puts "WORKER #{Process.pid}: Input #{@input.inspect}"
+      debug "WORKER #{Process.pid}: Input #{@input.inspect}"
       if @input["\n"]
         command, @input = @input.split("\n", 2)
-        STDERR.puts "WORKER #{Process.pid}: command: #{command.inspect}"
+        debug "WORKER #{Process.pid}: command: #{command.inspect}"
         if command == "QUIT"
           exit 0
         elsif command["ITERS"]
@@ -35,7 +42,7 @@ module ABProf
           run_n iters
           STDOUT.write "OK\n"
           STDOUT.flush  # Why does this synchronous file descriptor not flush when given a string with a newline? Ugh!
-          STDERR.puts "WORKER #{Process.pid}: finished command ITERS: OK"
+          debug "WORKER #{Process.pid}: finished command ITERS: OK"
         else
           STDERR.puts "Unrecognized ABProf command: #{command.inspect}!"
           exit -1
@@ -54,8 +61,12 @@ module ABProf
     attr_reader :last_run
     attr_reader :last_iters
 
+    def debug string
+      STDERR.puts string
+    end
+
     def initialize command_line, opts = {}
-      STDERR.puts "Controller of nobody yet: SPAWN"
+      debug "Controller of nobody yet: SPAWN"
       @in_reader, @in_writer = IO.pipe
       @out_reader, @out_writer = IO.pipe
       @in_writer.sync = true
@@ -72,25 +83,25 @@ module ABProf
       @in_reader.close
 
       @debug = opts[:debug]
-      STDERR.puts "Controller spawned #{@pid} (debug: #{@debug.inspect})"
+      debug "Controller spawned #{@pid} (debug: #{@debug.inspect})"
       # Sleep briefly to allow process startup. How does this usually get fixed?
       #sleep 0.5
     end
 
     def quit
-      STDERR.puts "Controller of #{@pid}: QUIT"
+      debug "Controller of #{@pid}: QUIT"
       @in_writer.write "QUIT\n"
     end
 
     def kill
-      STDERR.puts "Controller of #{@pid}: DIE"
+      debug "Controller of #{@pid}: DIE"
       ::Process.detach @pid
       ::Process.kill "TERM", @pid
     end
 
     def run_iters(n)
       t_start = Time.now
-      STDERR.puts "Controller of #{@pid}: #{n} ITERS"
+      debug "Controller of #{@pid}: #{n} ITERS"
       @in_writer.write "ITERS #{n.to_i}\n"
 
       ignored_out = 0
@@ -100,7 +111,7 @@ module ABProf
         output = @out_reader.gets
         ignored_out += output.length
         puts "Controller of #{@pid} out: #{output.inspect}" if @debug
-        STDERR.puts "Controller of #{@pid} out: #{output.inspect}"
+        debug "Controller of #{@pid} out: #{output.inspect}"
         if output =~ /^OK$/   # These anchors match newlines, too
           state = :succeeded
           break
