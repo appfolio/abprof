@@ -43,6 +43,34 @@ your code.
 In the future there may also be a "just run the program, even though
 that's slow" mode.
 
+For a Ruby snippet to be profiled, do this:
+
+    require "abprof"
+
+    ABProf::ABWorker.iteration do
+      # Code to measure goes here
+	  sleep 0.1
+    end
+
+    ABProf::ABWorker.start
+
+With two such snippets, you can compare their speed.
+
+Under the hood, ABProf uses a simple communication protocol over STDIN
+and STDOUT to allow the controlling process to tell the workers to run
+iterations. Mostly that's great, but it means you'll need to make sure
+your worker processes aren't using STDIN for anything else.
+
+### Quick Start
+
+Want to have fun with something that already works? I usually do. See
+the examples directory. For instance:
+
+    abprof examples/sleep.rb examples/sleep_longer.rb
+
+If abprof is just in the source directory and not installed as a gem,
+you should add RUBYLIB="lib" before "abprof" above to get it to run.
+
 ### Comparing Rubies
 
 I'm AppFolio's Ruby fellow, so I'm writing this to compare two
@@ -55,9 +83,16 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
+## Credit Where Credit Is Due
+
+I feel like I maybe saw this idea (use A/B test math for a profiler)
+somewhere else before, but I can't tell if I really did or if I
+misunderstood or hallucinated it. Either way, why isn't this a
+standard approach that's built into most profiling tools?
+
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/abprof. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/appfolio/abprof. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 
 ## License

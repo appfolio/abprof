@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+
+require "trollop"
+require "abprof"
+
+OPTS = Trollop::options do
+  banner <<BANNER
+Specify a first and second command line, and (often) a p-value or other
+parameters.
+
+Example:  abprof examples/sleep.rb examples/sleep_longer.rb
+
+The first and second commands are the first two arguments. You'll need to
+quote multi-word commands, as is normal in bash.
+
+Specifying lots of iterations and trials, high burn-in and a low P value
+is accurate, but slow.
+
+Specifying low iterations, trials and burn-in and a high P value gives
+quick, rough results early on.
+
+Specifying more iterations per trial is good for highly variable iteration
+timing.
+
+Specifying a lower max number of trials keeps the test from running *too*
+long when the two are identical.
+
+Specifying a high burn-in is necessary when cache behavior changes timing
+significantly.
+BANNER
+  opt :debug1,      "Print first-process output to console"
+  opt :debug2,      "Print second-process output to console"
+  opt :pvalue,      "Probability of a false negative", :default => 0.05
+  opt :burnin,      "'Burn in' repetitions before real trials",  :default => 100
+  opt :max_trials,  "Maximum number of sample sets from each process", :default => 10_000
+  opt :iters_per_trial, "Iterations per sample set", :default => 100
+end
+
+if ARGV.length != 2
+  puts "Must specify both commands as normal arguments!"
+  exit -1
+end
+
+command1, command2 = ARGV
+
+process1 = ABProf::ABProcess.new command1, :debug => OPTS[:debug1]
+process2 = ABProf::ABProcess.new command2, :debug => OPTS[:debug2]
+
+# Burn-in
+OPTS[:burnin].times do
+  process1.run_iters OPTS[:burnin]
+  process2.run_iters OPTS[:burnin]
+end
+
+# Sampling
+
+
+# Clean up processes
+process1.kill
+process2.kill
