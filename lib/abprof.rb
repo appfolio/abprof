@@ -9,29 +9,31 @@ module ABProf
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
   class ABWorker
-    def self.initialize
-      @input = ""
-    end
-
     def self.iteration(&block)
       @iter_block = block
     end
 
     def self.run_n(n)
+      STDERR.puts "WORKER #{Process.pid}: running #{n} times"
       n.times do
         @iter_block.call
       end
     end
 
     def self.read_loop
-      @input += STDIN.read
+      STDERR.puts "WORKER #{Process.pid}: read loop"
+      @input ||= ""
+      @input += STDIN.gets
+      STDERR.puts "WORKER #{Process.pid}: Input #{@input.inspect}"
       if @input["\n"]
-        command, @input = input.split("\n", 2)
+        command, @input = @input.split("\n", 2)
+        STDERR.puts "WORKER #{Process.pid}: command: #{command.inspect}"
         if command == "QUIT"
           exit 0
         elsif command["ITERS"]
           iters = command[5..-1].to_i
           run_n iters
+          STDOUT.write "OK\n"
         else
           STDERR.puts "Unrecognized ABProf command: #{command.inspect}!"
           exit -1
@@ -49,37 +51,58 @@ module ABProf
     attr_reader :last_iters
 
     def initialize command_line, opts = {}
+      STDERR.puts "Controller of nobody yet: SPAWN"
       @in_reader, @in_writer = IO.pipe
       @out_reader, @out_writer = IO.pipe
-      @pid = spawn command_line, :out => @out_writer, :in => @in_reader
+      @in_writer.sync = true
+      @out_writer.sync = true
+
+      @pid = fork do
+        STDOUT.reopen(@out_writer)
+        STDIN.reopen(@in_reader)
+        @out_reader.close
+        @in_writer.close
+        exec command_line
+      end
+      @out_writer.close
+      @out_writer = nil
+      @in_reader.close
+      @in_reader = nil
+
       @debug = opts[:debug]
+      STDERR.puts "Controller spawned #{@pid} (debug: #{@debug.inspect})"
+      # Sleep briefly to allow process startup. How does this usually get fixed?
+      sleep 0.5
     end
 
     def quit
+      STDERR.puts "Controller of #{@pid}: QUIT"
       @in_writer.write "QUIT\n"
     end
 
     def kill
+      STDERR.puts "Controller of #{@pid}: DIE"
       ::Process.detach @pid
       ::Process.kill @pid
     end
 
     def run_iters(n)
       t_start = Time.now
+      STDERR.puts "Controller of #{@pid}: #{n} ITERS"
       @in_writer.write "ITERS #{n.to_i}\n"
 
       ignored_out = 0
       state = :failed
       loop do
         # Read and block
-        output = @out_reader.read
+        output = @out_reader.gets
         ignored_out += output.length
         puts "Process #{@pid} out: #{output.inspect}" if @debug
-        if lines =~ /^OK$/   # These anchors match newlines, too
+        if output =~ /^OK$/   # These anchors match newlines, too
           state = :succeeded
           break
         end
-        if lines =~ /^NOT OK$/ # These anchors match newlines, too
+        if output =~ /^NOT OK$/ # These anchors match newlines, too
           # Failed, break
           state = :explicit_not_ok
           break
