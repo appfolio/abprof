@@ -32,4 +32,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest", "~> 5.0"
   spec.add_runtime_dependency "trollop"
   spec.add_runtime_dependency "statsample"
+  spec.add_runtime_dependency "multi_json"
 end

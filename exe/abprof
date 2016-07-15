@@ -94,10 +94,10 @@ if p_val < OPTS[:pvalue]
     command = command2
   end
 
-  puts "Faster process is #{fastest}, command line: #{command.inspect}"
+  puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
 else
   puts "Based on measured P value #{p_val} and threshold #{OPTS[:pvalue]}, we believe there is"
-  puts "no speed difference detectable with this set of trials."
+  puts "no significant difference detectable with this set of trials."
   puts "If you believe there is a small difference that wasn't detected, try raising the number"
   puts "of iterations per trial, or the maximum number of trials."
 end

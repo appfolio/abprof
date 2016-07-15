@@ -1,9 +1,14 @@
 require "abprof/version"
 
+require "multi_json"
+
 # Protocol:
 #   Controller sends "ITERS [integer]\n"
 #   Controller sends "QUIT\n" when done
-#   Test process responds "OK\n" or "NOT OK\n" or crashes; QUIT requires no response.
+#   Test process responds with "NOT OK\n" or crashes for bad results
+#   Test process responds with "VALUE 27.23432" to explicitly return a single value
+#   Test process responds with "VALUES [1.4, 2.714, 39.4, -71.4]" to explicitly return many values
+#     QUIT requires no response.
 
 module ABProf
   def self.debug

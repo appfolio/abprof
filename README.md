@@ -66,10 +66,28 @@ your worker processes aren't using STDIN for anything else.
 Want to have fun with something that already works? I usually do. See
 the examples directory. For instance:
 
-    abprof examples/sleep.rb examples/sleep_longer.rb
+    abprof examples/sleep.rb examples/sleep.rb
 
 If abprof is just in the source directory and not installed as a gem,
 you should add RUBYLIB="lib" before "abprof" above to get it to run.
+
+### More Control
+
+Would you like to explicitly return the value(s) to compare? You can
+replace the "iteration" block above with "iteration\_with\_return\_value"
+or "n\_iterations\_with\_return\_value". In the former case, return a
+single number at then end of the block, which is the measured value
+specifically for that time through the loop. In the latter case, your
+block will take a single parameter N for the number of iterations -
+run the code that many times and return either a single measured speed
+or time, or an array of speeds or times, which will be your samples.
+
+This can be useful when running N iterations doesn't necessarily
+generate exactly N results, or when the time the whole chunk of code
+takes to run isn't the most representative number for performance. The
+statistical test will help filter out random test-setup noise
+somewhat, but sometimes it's best to not count the noise in your
+measurement at all, for many good reasons.
 
 ### Comparing Rubies
 
