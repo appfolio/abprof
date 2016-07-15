@@ -28,12 +28,17 @@ long when the two are identical.
 
 Specifying a high burn-in is necessary when cache behavior changes timing
 significantly.
+
+Vast numbers of trials can nearly always occasionally show differences
+*somewhere* along the line, just by random chance. To avoid this, pick how
+many samples first, run them all in one go, and then just check the p value
+once.
 BANNER
   opt :debug1,      "Print first-process output to console"
   opt :debug2,      "Print second-process output to console"
   opt :pvalue,      "Probability of a false negative", :default => 0.05
   opt :burnin,      "'Burn in' repetitions before real trials",  :default => 50
-  opt :max_trials,  "Maximum number of sample sets from each process", :default => 1000
+  opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
   opt :iters_per_trial, "Iterations per sample set", :default => 100
 end
 
@@ -56,6 +61,7 @@ samples_so_far = 0
 # Statsample Vectors
 results1 = []
 results2 = []
+p_val = 1.0
 OPTS[:max_trials].times do |i|
   # Add a sample to each set, with the total time for :iters_per_trial iterations.
   # Alternate run order on successive iterations.
@@ -71,10 +77,12 @@ OPTS[:max_trials].times do |i|
   # Evaluate the Welch's t-test
   t = Statsample::Test.t_two_samples_independent(results1.to_vector, results2.to_vector)
   p_val = t.probability_not_equal_variance
-  STDERR.puts "Current Welch's T-test p not equal: #{p_val.inspect}"
+  STDERR.puts "Current Welch's T-test p equal: #{p_val.inspect}"
 
   break if p_val < OPTS[:pvalue]
 end
+
+puts "As of end of run, p value is #{p_val}. Now run more times to check, or with lower p."
 
 # Clean up processes
 process1.kill
