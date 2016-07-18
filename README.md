@@ -95,6 +95,21 @@ I'm AppFolio's Ruby fellow, so I'm writing this to compare two
 different locally-built Ruby implementations for speed. Here's the
 easiest way to do that:
 
+### How Many Times Faster?
+
+ABProf will try to give you an estimate of how much faster one option
+is than the other. Be careful taking it at face value -- if you do a
+series of trials and coincidentally get a really different-looking
+run, that may give you an unexpected P value *and* an unexpected
+number of times faster/better/different.
+
+In other words, those false positives will tend to happen *together*,
+not independently. If you want to actually check how much faster one
+is than the other in a less-biased way, set the number of trials
+and/or iterations very high, or manually run both yourself some large
+number of times, rather than letting it converge to a P value and then
+taking the result from the output.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

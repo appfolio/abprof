@@ -89,12 +89,15 @@ if p_val < OPTS[:pvalue]
 
   fastest = "1"
   command = command1
+  times = sum2 / sum1
   if sum1 > sum2
     fastest = "2"
     command = command2
+    times = sum1 / sum2
   end
 
   puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
+  puts "Lower command is (very) roughly #{times} times lower (faster?) -- assuming linear sampling."
 else
   puts "Based on measured P value #{p_val} and threshold #{OPTS[:pvalue]}, we believe there is"
   puts "no significant difference detectable with this set of trials."
