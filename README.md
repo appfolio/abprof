@@ -61,6 +61,8 @@ and STDOUT to allow the controlling process to tell the workers to run
 iterations. Mostly that's great, but it means you'll need to make sure
 your worker processes aren't using STDIN for anything else.
 
+See the examples directory for more.
+
 ### Quick Start
 
 Want to have fun with something that already works? I usually do. See
@@ -71,7 +73,35 @@ the examples directory. For instance:
 If abprof is just in the source directory and not installed as a gem,
 you should add RUBYLIB="lib" before "abprof" above to get it to run.
 
+### Comparing Rubies
+
+I'm AppFolio's Ruby fellow, so I'm writing this to compare two
+different locally-built Ruby implementations for speed. The easiest
+way to do that is to build them in multiple directories, then build a
+wrapper that uses that directory to run the program in question.
+
+You can see examples such as examples/alt\_ruby.rb and
+examples/vanilla\_ruby.rb and so on in the examples directory of this
+gem.
+
+### How Many Times Faster?
+
+ABProf will try to give you an estimate of how much faster one option
+is than the other. Be careful taking it at face value -- if you do a
+series of trials and coincidentally get a really different-looking
+run, that may give you an unexpected P value *and* an unexpected
+number of times faster/better/different.
+
+In other words, those false positives will tend to happen *together*,
+not independently. If you want to actually check how much faster one
+is than the other in a less-biased way, set the number of trials
+and/or iterations very high, or manually run both yourself some large
+number of times, rather than letting it converge to a P value and then
+taking the result from the output.
+
 ### More Control
+
+(Note: this section doesn't work correctly -- yet.)
 
 Would you like to explicitly return the value(s) to compare? You can
 replace the "iteration" block above with "iteration\_with\_return\_value"
@@ -89,27 +119,6 @@ statistical test will help filter out random test-setup noise
 somewhat, but sometimes it's best to not count the noise in your
 measurement at all, for many good reasons.
 
-### Comparing Rubies
-
-I'm AppFolio's Ruby fellow, so I'm writing this to compare two
-different locally-built Ruby implementations for speed. Here's the
-easiest way to do that:
-
-### How Many Times Faster?
-
-ABProf will try to give you an estimate of how much faster one option
-is than the other. Be careful taking it at face value -- if you do a
-series of trials and coincidentally get a really different-looking
-run, that may give you an unexpected P value *and* an unexpected
-number of times faster/better/different.
-
-In other words, those false positives will tend to happen *together*,
-not independently. If you want to actually check how much faster one
-is than the other in a less-biased way, set the number of trials
-and/or iterations very high, or manually run both yourself some large
-number of times, rather than letting it converge to a P value and then
-taking the result from the output.
-
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
@@ -125,7 +134,8 @@ standard approach that's built into most profiling tools?
 
 After I started implementation I found out that optcarrot, used by the
 Ruby core team for profiling, is already using this technique (!) -- I
-stole a few tricks from their implementation.
+am using it slightly differently, but I'm clearly not the first to
+think of using a statistics test to verify which of two programs is faster.
 
 ## Contributing
 
