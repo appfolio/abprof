@@ -41,6 +41,7 @@ BANNER
   opt :debug2,      "Print second-process output to console"
   opt :pvalue,      "P value (certainty) for Welch's T test", :default => 0.05
   opt :burnin,      "'Burn in' repetitions before real trials",  :default => 50
+  opt :min_trials,  "Minimum number of sample sets from each process", :default => 1
   opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
   opt :iters_per_trial, "Iterations per sample set", :default => 100
 end
@@ -70,14 +71,15 @@ OPTS[:max_trials].times do |i|
   results1.push process1.run_iters(OPTS[:iters_per_trial])
   results2.push process2.run_iters(OPTS[:iters_per_trial])
 
-  # No t-test without 3+ runs
-  next unless results1.size > 2
-  # Evaluate the Welch's t-test
-  t = Statsample::Test.t_two_samples_independent(results1.to_vector, results2.to_vector)
-  p_val = t.probability_not_equal_variance
-  STDERR.puts "Current Welch's T-test p value: #{p_val.inspect}"
+  # No t-test without 3+ samples
+  if results1.size > 2
+    # Evaluate the Welch's t-test
+    t = Statsample::Test.t_two_samples_independent(results1.to_vector, results2.to_vector)
+    p_val = t.probability_not_equal_variance
+    puts "Trial #{i + 1}, Welch's T-test p value: #{p_val.inspect}"
+  end
 
-  break if p_val < OPTS[:pvalue]
+  break if p_val < OPTS[:pvalue] && i >= OPTS[:min_trials]
 end
 
 if p_val < OPTS[:pvalue]
