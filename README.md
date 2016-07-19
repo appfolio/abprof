@@ -84,6 +84,28 @@ You can see examples such as examples/alt\_ruby.rb and
 examples/vanilla\_ruby.rb and so on in the examples directory of this
 gem.
 
+Those examples use a benchmark called "optcarrot" which can be quite
+slow. So you'll need to decide whether to do a quick, rough check with
+a few iterations or a more in-depth check which runs many times for
+high certainty.
+
+Here's a slow, very certain check:
+
+    abprof --burnin=10 --max-trials=50 --min-trials=50 --iters-per-trial=5 examples/vanilla_ruby.rb examples/inline_ruby_1800.rb
+
+Note that since the minimum and maximum trials are both 50, it won't
+stop at a particular certainty (P value.) It will just run for 50
+trials of 5 iterations each. It takes awhile, but gives a pretty good
+estimate of how fast one is compared to the other.
+
+Here's a quicker, rougher check:
+
+    abprof --burnin=5 --max-trials=10 --iters-per-trial=1 examples/vanilla_ruby.rb examples/inline_ruby_1800.rb
+
+It may stop after only a few trials if the difference in speed is big
+enough. By default, it uses a P value of 0.05, which is (very roughly)
+a one in twenty chance of a false result.
+
 ### How Many Times Faster?
 
 ABProf will try to give you an estimate of how much faster one option
@@ -98,6 +120,8 @@ is than the other in a less-biased way, set the number of trials
 and/or iterations very high, or manually run both yourself some large
 number of times, rather than letting it converge to a P value and then
 taking the result from the output.
+
+See the first example under "Comparing Rubies" for one way to do this.
 
 ### More Control
 

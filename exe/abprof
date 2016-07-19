@@ -57,8 +57,13 @@ process1 = ABProf::ABProcess.new command1, :debug => OPTS[:debug1]
 process2 = ABProf::ABProcess.new command2, :debug => OPTS[:debug2]
 
 # Burn-in
-process1.run_iters OPTS[:burnin]
-process2.run_iters OPTS[:burnin]
+if OPTS[:burnin] > 0
+  puts "Beginning #{OPTS[:burnin]} iterations of burn-in for each process."
+  process1.run_iters OPTS[:burnin]
+  process2.run_iters OPTS[:burnin]
+end
+
+puts "Beginning sampling from processes."
 
 # Sampling
 samples_so_far = 0
