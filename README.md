@@ -11,6 +11,11 @@ your program and do the same thing again to compare.
 Real statisticians inform us that there are a few problems with that
 approach :-)
 
+We use a [Welch's T Test](https://en.wikipedia.org/wiki/Welch%27s_t-test) on a
+set of measured runtimes to determine how likely the two programs are
+to be different from each other, and after the P value is low enough,
+we give our current estimate of which is faster and by how much.
+
 ## Installation
 
 Add this line to your application's Gemfile:
