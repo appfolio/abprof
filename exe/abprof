@@ -105,7 +105,7 @@ if p_val < OPTS[:pvalue]
   command = command1
   mean_times = summary21 / summary11
   median_times = summary22 / summary12
-  if sum1 > sum2
+  if summary11 > summary21
     fastest = "2"
     command = command2
     mean_times = summary11 / summary21

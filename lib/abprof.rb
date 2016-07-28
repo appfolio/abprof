@@ -87,7 +87,7 @@ module ABProf
   }
   SUMMARY_METHODS = SUMMARY_TYPES.keys
   def self.summarize(method, samples)
-    raise "Unknown summary method #{method.inspect}!" unless METHODS.include?(method.to_s)
+    raise "Unknown summary method #{method.inspect}!" unless SUMMARY_METHODS.include?(method.to_s)
     method_proc = SUMMARY_TYPES[method.to_s]
     method_proc.call(samples)
   end
