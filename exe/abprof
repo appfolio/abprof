@@ -44,6 +44,9 @@ BANNER
   opt :min_trials,  "Minimum number of sample sets from each process", :default => 1
   opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
   opt :iters_per_trial, "Iterations per sample set", :default => 100
+  methods = ABProf::SUMMARY_METHODS.map { |m| "'#{m}'" }.join ", "
+  #opt :sample_sum,  "Method to summarize many samples. One of #{methods}", :default => "mean"
+  opt :print_samples, "Print all sample values for later analysis.", :default => false
 end
 
 if ARGV.length != 2
@@ -84,32 +87,48 @@ OPTS[:max_trials].times do |i|
     puts "Trial #{i + 1}, Welch's T-test p value: #{p_val.inspect}"
   end
 
-  break if p_val < OPTS[:pvalue] && i >= OPTS[:min_trials]
+  # Just finished trial number i+1. So we can exit only if i+1 was at least
+  # the minimum number of trials.
+  break if p_val < OPTS[:pvalue] && (i + 1 >= OPTS[:min_trials])
 end
 
 if p_val < OPTS[:pvalue]
   puts "Based on measured P value #{p_val}, we believe there is a speed difference."
   puts "As of end of run, p value is #{p_val}. Now run more times to check, or with lower p."
 
-  sum1 = results1.inject(0.0, &:+)
-  sum2 = results2.inject(0.0, &:+)
+  summary11 = ABProf.summarize("mean", results1)
+  summary12 = ABProf.summarize("median", results1)
+  summary21 = ABProf.summarize("mean", results2)
+  summary22 = ABProf.summarize("median", results2)
 
   fastest = "1"
   command = command1
-  times = sum2 / sum1
+  mean_times = summary21 / summary11
+  median_times = summary22 / summary12
   if sum1 > sum2
     fastest = "2"
     command = command2
-    times = sum1 / sum2
+    mean_times = summary11 / summary21
+    median_times = summary12 / summary22
   end
 
   puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
-  puts "Lower command is (very) roughly #{times} times lower (faster?) -- assuming linear sampling."
+  puts "Lower command is (very) roughly #{median_times} times lower (faster?) -- assuming linear sampling."
 else
   puts "Based on measured P value #{p_val} and threshold #{OPTS[:pvalue]}, we believe there is"
   puts "no significant difference detectable with this set of trials."
   puts "If you believe there is a small difference that wasn't detected, try raising the number"
   puts "of iterations per trial, or the maximum number of trials."
+end
+
+puts "Process 1 mean result: #{summary11}"
+puts "Process 1 median result: #{summary12}"
+puts "Process 2 mean result: #{summary21}"
+puts "Process 2 median result: #{summary22}"
+
+if OPTS[:print_samples]
+  puts "Samples for P1: #{results1.inspect}"
+  puts "Samples for P2: #{results2.inspect}"
 end
 
 # Clean up processes

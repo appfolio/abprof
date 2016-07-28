@@ -94,7 +94,7 @@ slow. So you'll need to decide whether to do a quick, rough check with
 a few iterations or a more in-depth check which runs many times for
 high certainty.
 
-Here's a slow, very certain check:
+Here's a slow, very conservative check:
 
     abprof --burnin=10 --max-trials=50 --min-trials=50 --iters-per-trial=5 examples/vanilla_ruby.rb examples/inline_ruby_1800.rb
 
@@ -110,6 +110,14 @@ Here's a quicker, rougher check:
 It may stop after only a few trials if the difference in speed is big
 enough. By default, it uses a P value of 0.05, which is (very roughly)
 a one in twenty chance of a false result.
+
+If you want a very low chance of a false positive, consider adjusting
+the P value downward, to more like 0.001 (0.1% chance) or 0.00001
+(0.001% chance.) This may require a lot of time to run, especially if
+the two programs are of very similar speed, or have a lot of
+variability in the test results.
+
+    abprof --burnin=5 --max-trials=50 --pvalue 0.001 --iters-per-trial=1 examples/sleep.rb examples/for_loop_10k.rb
 
 ### How Many Times Faster?
 

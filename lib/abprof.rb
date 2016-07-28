@@ -69,6 +69,29 @@ module ABProf
     end
   end
 
+  SUMMARY_TYPES = {
+    "mean" => proc { |samples|
+      samples.inject(0.0, &:+) / samples.size
+    },
+    "median" => proc { |samples|
+      sz = samples.size
+      sorted = samples.sort
+      if sz % 2 == 1
+        # For odd-length, take middle element
+        sorted[ samples.size / 2 ]
+      else
+        # For even length, mean of two middle elements
+        (sorted[ sz / 2 ] + sorted[ sz / 2 + 1 ]) / 2.0
+      end
+    },
+  }
+  SUMMARY_METHODS = SUMMARY_TYPES.keys
+  def self.summarize(method, samples)
+    raise "Unknown summary method #{method.inspect}!" unless METHODS.include?(method.to_s)
+    method_proc = SUMMARY_TYPES[method.to_s]
+    method_proc.call(samples)
+  end
+
   class ABProcess
     attr_reader :last_run
     attr_reader :last_iters
