@@ -34,19 +34,40 @@ Or install it yourself as:
 
 ## Usage
 
+### Quick Start - Run Two Programs
+
+The simplest way to use ABProf is the "abcompare" command. Give it two
+commands, let it run them for you and measure the results. If your
+command contains spaces, put it in quotes - standard shell
+programming.
+
+    $ abcompare "cd ../vanilla_ruby && ./tool/runruby.rb ../optcarrot/bin/optcarrot --benchmark ../optcarrot/examples/Lan_Master.nes >> /dev/null" \
+      "cd ../alt_ruby && ./tool/runruby.rb ../optcarrot/bin/optcarrot --benchmark ../optcarrot/examples/Lan_Master.nes >> /dev/null"
+
+This defaults to basic settings (10 iterations of burn-in before
+measuring, P value of 0.05, etc.)  You can change them on the command
+line. Running this way is simple, straightforward, and will take
+a little longer to converge since it's paying the start-a-process tax every
+time it takes a measurement.
+
+Run "abcompare --help" if you want to see what command-line options
+you can supply. For more control in the results, see below.
+
+The abcompare command is identical to abprof except that it uses a raw
+command, not harness code. See below for details.
+
+### Quick Start - Test Harness
+
 Loading and running a program is slow, and it adds a lot of variable
-overhead which can make it hard to sample the specific operations that
-you want to measure. So ABProf prefers to run both programs and then
-just sample them on demand. That requires a bit of an interface for
-the programs you're running.
+overhead. That can make it hard to sample the specific operations that
+you want to measure. ABProf prefers to just do the operations you want
+without restarting the worker processes constantly. That takes a bit
+of harness code to do well.
 
 In Ruby, there's an ABProf library you can use which will take care of
 that interface. That's the easiest way to use it, especially since
 you're running a benchmark anyway and would need some structure around
 your code.
-
-In the future there may also be a "just run the program, even though
-that's slow" mode.
 
 For a Ruby snippet to be profiled, do this:
 
@@ -59,24 +80,34 @@ For a Ruby snippet to be profiled, do this:
 
     ABProf::ABWorker.start
 
-With two such snippets, you can compare their speed.
+With two such files, you can compare their speed.
 
-Under the hood, ABProf uses a simple communication protocol over STDIN
-and STDOUT to allow the controlling process to tell the workers to run
-iterations. Mostly that's great, but it means you'll need to make sure
-your worker processes aren't using STDIN for anything else.
+Under the hood, ABProf's harness uses a simple communication protocol
+over STDIN and STDOUT to allow the controlling process to tell the
+workers to run iterations. Mostly that's great, but it means you'll
+need to make sure your worker processes aren't using STDIN for
+anything else.
 
-See the examples directory for more.
-
-### Quick Start
-
-Want to have fun with something that already works? I usually do. See
-the examples directory. For instance:
+See the examples directory for more. For instance:
 
     abprof examples/sleep.rb examples/sleep.rb
 
 If abprof is just in the source directory and not installed as a gem,
 you should add RUBYLIB="lib" before "abprof" above to get it to run.
+
+### Don't Cross the Streams
+
+Harness-enabled tests expect to run forever, fielding requests for
+work.
+
+Non-harness-enabled tests don't know how to do harness stuff.
+
+If you run the wrong way (abcompare with a harness, abprof with no
+harness,) you'll get either an immediate crash or running forever
+without ever finishing burn-in, depending which way you did it.
+
+Normally you'll handle this by just passing your command line directly
+to abcompare rather than packaging it up into a separate Ruby script.
 
 ### Comparing Rubies
 
@@ -125,7 +156,7 @@ ABProf will try to give you an estimate of how much faster one option
 is than the other. Be careful taking it at face value -- if you do a
 series of trials and coincidentally get a really different-looking
 run, that may give you an unexpected P value *and* an unexpected
-number of times faster/better/different.
+number of times faster.
 
 In other words, those false positives will tend to happen *together*,
 not independently. If you want to actually check how much faster one
@@ -134,11 +165,13 @@ and/or iterations very high, or manually run both yourself some large
 number of times, rather than letting it converge to a P value and then
 taking the result from the output.
 
-See the first example under "Comparing Rubies" for one way to do this.
+See the first example under "Comparing Rubies" for one way to do
+this. Setting the min and max trials equal is good practice for this
+to reduce bias.
 
 ### More Control
 
-(Note: this section doesn't work correctly -- yet.)
+(Note: this section doesn't work correctly yet.)
 
 Would you like to explicitly return the value(s) to compare? You can
 replace the "iteration" block above with "iteration\_with\_return\_value"
@@ -158,9 +191,16 @@ measurement at all, for many good reasons.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install
+dependencies. Then, run `rake test` to run the tests. You can also run
+`bin/console` for an interactive prompt that will allow you to
+experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+To install this gem onto your local machine, run `bundle exec rake
+install`. To release a new version, update the version number in
+`version.rb`, and then run `bundle exec rake release`, which will
+create a git tag for the version, push git commits and tags, and push
+the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Credit Where Credit Is Due
 
@@ -176,10 +216,13 @@ think of using a statistics test to verify which of two programs is faster.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/appfolio/abprof. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
+Bug reports and pull requests are welcome on GitHub at
+https://github.com/appfolio/abprof. This project is intended to be a
+safe, welcoming space for collaboration, and contributors are expected
+to adhere to the
+[Contributor Covenant](http://contributor-covenant.org) code of
+conduct.
 
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

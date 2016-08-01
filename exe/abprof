@@ -9,7 +9,7 @@ OPTS = Trollop::options do
 Specify a first and second command line, and (often) a p-value or other
 parameters.
 
-Example:  abprof examples/sleep.rb examples/sleep_longer.rb
+Example:  #{$0} examples/sleep.rb examples/sleep_longer.rb
 
 The first and second commands are the first two arguments. You'll need to
 quote multi-word commands, as is normal in bash.
@@ -39,13 +39,12 @@ That's an oversimplification, but not (usually) a terrible one.
 BANNER
   opt :debug1,      "Print first-process output to console"
   opt :debug2,      "Print second-process output to console"
+  opt :bare,        "Use bare command-line commands, no Ruby harness", :default => ($0["compare"])
   opt :pvalue,      "P value (certainty) for Welch's T test", :default => 0.05
-  opt :burnin,      "'Burn in' repetitions before real trials",  :default => 50
+  opt :burnin,      "'Burn in' repetitions before real trials",  :default => 10
   opt :min_trials,  "Minimum number of sample sets from each process", :default => 1
   opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
   opt :iters_per_trial, "Iterations per sample set", :default => 100
-  methods = ABProf::SUMMARY_METHODS.map { |m| "'#{m}'" }.join ", "
-  #opt :sample_sum,  "Method to summarize many samples. One of #{methods}", :default => "mean"
   opt :print_samples, "Print all sample values for later analysis.", :default => false
 end
 
@@ -56,8 +55,10 @@ end
 
 command1, command2 = ARGV
 
-process1 = ABProf::ABProcess.new command1, :debug => OPTS[:debug1]
-process2 = ABProf::ABProcess.new command2, :debug => OPTS[:debug2]
+process_type = (OPTS[:bare] ? ABProf::ABBareProcess : ABProf::ABHarnessProcess)
+
+process1 = process_type.new command1, :debug => OPTS[:debug1]
+process2 = process_type.new command2, :debug => OPTS[:debug2]
 
 # Burn-in
 if OPTS[:burnin] > 0

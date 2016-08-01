@@ -20,6 +20,8 @@ module ABProf
 
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
+  # The bare mode can do without it, but it's needed for harness
+  # processes.
   class ABWorker
     def debug string
       STDERR.puts(string) if ABProf.debug
@@ -92,12 +94,54 @@ module ABProf
     method_proc.call(samples)
   end
 
-  class ABProcess
+  class ABBareProcess
     attr_reader :last_run
     attr_reader :last_iters
 
     def debug string
-      STDERR.puts(string) if ABProf.debug
+      STDERR.puts(string) if @debug && ABProf.debug
+    end
+
+    def initialize command_line, opts = {}
+      @command = command_line
+      @debug = opts[:debug]
+    end
+
+    def quit
+      # No-op
+    end
+
+    def kill
+      # No-op
+    end
+
+    def run_iters(n)
+      t_start = Time.now
+      debug "Controller of #{@pid}: #{n} ITERS"
+
+      state = :succeeded
+      n.times do
+        system(@command)
+        unless $?.success?
+          STDERR.puts "Failing process #{@pid} after failed iteration(s), error code #{state.inspect}"
+          # How to handle error with no self.kill?
+          raise "Failure from command #{@command.inspect}, dying!"
+        end
+      end
+      t_end = Time.now
+      @last_run = (t_end - t_start).to_f
+      @last_iters = n
+
+      @last_run
+    end
+  end
+
+  class ABHarnessProcess
+    attr_reader :last_run
+    attr_reader :last_iters
+
+    def debug string
+      STDERR.puts(string) if @debug && ABProf.debug
     end
 
     def initialize command_line, opts = {}
@@ -119,8 +163,6 @@ module ABProf
 
       @debug = opts[:debug]
       debug "Controller spawned #{@pid} (debug: #{@debug.inspect})"
-      # Sleep briefly to allow process startup. How does this usually get fixed?
-      #sleep 0.5
     end
 
     def quit
