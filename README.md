@@ -69,7 +69,7 @@ that interface. That's the easiest way to use it, especially since
 you're running a benchmark anyway and would need some structure around
 your code.
 
-For a Ruby snippet to be profiled, do this:
+For a Ruby snippet to be profiled very simply, do this:
 
     require "abprof"
 
