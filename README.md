@@ -169,6 +169,18 @@ See the first example under "Comparing Rubies" for one way to do
 this. Setting the min and max trials equal is good practice for this
 to reduce bias.
 
+### Does This Just Take Forever?
+
+It's easy to accidentally specify a very large number of iterations
+per trial, or total trials, or otherwise make testing a slow program
+take *forever*. Right now, you'll pretty much just need to notice that
+it's happening and drop the iters-per-trial, the min-trials, or the P
+value. When in doubt, try to start with just a very quick, rough test.
+
+Of course, if your test is *really* slow, or you're trying to detect a
+very small difference, it can just take a really long time. Like A/B
+testing, this method has its pitfalls.
+
 ### More Control
 
 (Note: this section doesn't work correctly yet.)

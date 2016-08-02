@@ -44,7 +44,7 @@ BANNER
   opt :burnin,      "'Burn in' repetitions before real trials",  :default => 10
   opt :min_trials,  "Minimum number of sample sets from each process", :default => 1
   opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
-  opt :iters_per_trial, "Iterations per sample set", :default => 100
+  opt :iters_per_trial, "Iterations per sample set", :default => 10
   opt :print_samples, "Print all sample values for later analysis.", :default => false
 end
 
