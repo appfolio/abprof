@@ -140,6 +140,6 @@ end
 process1.kill
 process2.kill
 
-exit -2 if diverged && OPTS[:fail_on_divergence]
+exit 2 if diverged && OPTS[:fail_on_divergence]
 
 # Otherwise, return success
