@@ -46,6 +46,7 @@ BANNER
   opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
   opt :iters_per_trial, "Iterations per sample set", :default => 10
   opt :print_samples, "Print all sample values for later analysis.", :default => false
+  opt :fail_on_divergence, "Return a non-zero code if pvalue is greater than specified."
 end
 
 if ARGV.length != 2
@@ -93,6 +94,8 @@ OPTS[:max_trials].times do |i|
   break if p_val < OPTS[:pvalue] && (i + 1 >= OPTS[:min_trials])
 end
 
+diverged = false
+
 if p_val < OPTS[:pvalue]
   puts "Based on measured P value #{p_val}, we believe there is a speed difference."
   puts "As of end of run, p value is #{p_val}. Now run more times to check, or with lower p."
@@ -120,6 +123,7 @@ else
   puts "no significant difference detectable with this set of trials."
   puts "If you believe there is a small difference that wasn't detected, try raising the number"
   puts "of iterations per trial, or the maximum number of trials."
+  diverged = true
 end
 
 puts "Process 1 mean result: #{summary11}"
@@ -135,3 +139,7 @@ end
 # Clean up processes
 process1.kill
 process2.kill
+
+exit -2 if diverged && OPTS[:fail_on_divergence]
+
+# Otherwise, return success
