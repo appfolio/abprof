@@ -183,8 +183,6 @@ testing, this method has its pitfalls.
 
 ### More Control
 
-(Note: this section doesn't work correctly yet.)
-
 Would you like to explicitly return the value(s) to compare? You can
 replace the "iteration" block above with "iteration\_with\_return\_value"
 or "n\_iterations\_with\_return\_value". In the former case, return a

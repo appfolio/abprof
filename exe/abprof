@@ -77,8 +77,8 @@ results2 = []
 p_val = 1.0
 OPTS[:max_trials].times do |i|
   # Add a sample to each set, with the total time for :iters_per_trial iterations.
-  results1.push process1.run_iters(OPTS[:iters_per_trial])
-  results2.push process2.run_iters(OPTS[:iters_per_trial])
+  results1 += process1.run_iters(OPTS[:iters_per_trial])
+  results2 += process2.run_iters(OPTS[:iters_per_trial])
 
   # No t-test without 3+ samples
   if results1.size > 2

@@ -18,6 +18,9 @@ module ABProf
     @debug = new_val
   end
 
+  # These are primarily for DSL use.
+  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin ]
+
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
   # The bare mode can do without it, but it's needed for harness
@@ -32,12 +35,42 @@ module ABProf
 
     def self.iteration(&block)
       @iter_block = block
+      @return = :none
+    end
+
+    def self.iteration_with_return_value(&block)
+      @iter_block = block
+      @return = :per_iteration
+    end
+
+    def self.n_interations_with_return_value(&block)
+      @iter_block = block
+      @return = :per_n_iterations
     end
 
     def self.run_n(n)
       debug "WORKER #{Process.pid}: running #{n} times"
-      n.times do
-        @iter_block.call
+
+      case @return
+      when :none
+        n.times do
+          @iter_block.call
+        end
+        STDOUT.write "OK\n"
+      when :per_iteration
+        values = (0..(n-1)).map { |i| @iter_block.call.to_f }
+        STDOUT.write "VALUES #{values.inspect}"
+      when :per_n_iterations
+        value = @iter_block.call(n)
+        if value.respond_to?(:each)
+          # Return array of numbers
+          STDOUT.write "VALUES #{value.to_a.inspect}"
+        else
+          # Return single number
+          STDOUT.write "VALUE #{value.to_f}"
+        end
+      else
+        raise "Unknown @return value #{@return.inspect} inside abprof!"
       end
     end
 
@@ -53,8 +86,7 @@ module ABProf
           exit 0
         elsif command["ITERS"]
           iters = command[5..-1].to_i
-          run_n iters
-          STDOUT.write "OK\n"
+          values = run_n iters
           STDOUT.flush  # Why does this synchronous file descriptor not flush when given a string with a newline? Ugh!
           debug "WORKER #{Process.pid}: finished command ITERS: OK"
         else
@@ -129,7 +161,7 @@ module ABProf
         end
       end
       t_end = Time.now
-      @last_run = (t_end - t_start).to_f
+      @last_run = [(t_end - t_start).to_f]
       @last_iters = n
 
       @last_run
@@ -189,8 +221,19 @@ module ABProf
         ignored_out += output.length
         puts "Controller of #{@pid} out: #{output.inspect}" if @debug
         debug "Controller of #{@pid} out: #{output.inspect}"
-        if output =~ /^OK$/   # These anchors match newlines, too
+        if output =~ /^VALUES/ # These anchors match newlines, too
           state = :succeeded
+          vals = MultiJson.load output[7..-1]
+          raise "Must return an array value from iterations!" unless vals.is_a?(Array)
+          raise "Must return an array of numbers from iterations!" unless vals[0].is_a?(Numeric)
+          @last_run = vals
+        elsif output =~ /^VALUE/ # These anchors match newlines, too
+          state = :succeeded
+          val = output[6..-1].to_f
+          raise "Must return a number from iterations!" unless val.is_a?(Numeric)
+          @last_run = [ val ]
+        elsif output =~ /^OK$/   # These anchors match newlines, too
+          state = :succeeded_get_time
           break
         end
         if output =~ /^NOT OK$/ # These anchors match newlines, too
@@ -204,12 +247,13 @@ module ABProf
           break
         end
       end
-      if state != :succeeded
+      t_end = Time.now
+      unless [:succeeded, :succeeded_get_time].include?(state)
         self.kill
         STDERR.puts "Killing process #{@pid} after failed iterations, error code #{state.inspect}"
       end
-      t_end = Time.now
-      @last_run = (t_end - t_start).to_f
+
+      @last_run = [ (t_end - t_start).to_f ] if state == :succeeded_get_time
       @last_iters = n
 
       @last_run
