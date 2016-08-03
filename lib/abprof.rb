@@ -19,7 +19,7 @@ module ABProf
   end
 
   # These are primarily for DSL use.
-  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin ]
+  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin, :bare ]
 
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.

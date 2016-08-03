@@ -2,7 +2,7 @@
 
 require "trollop"
 require "abprof"
-require "statsample"
+require "abprof/benchmark_dsl"
 
 OPTS = Trollop::options do
   banner <<BANNER
@@ -56,89 +56,63 @@ end
 
 command1, command2 = ARGV
 
-process_type = (OPTS[:bare] ? ABProf::ABBareProcess : ABProf::ABHarnessProcess)
+# Create DSL configuration for known properties,
+# but don't actually run the sampling yet.
+bm_inst = ABProf.compare(:run_sampling_at_exit => false) do
+  pvalue OPTS[:pvalue]
+  burnin OPTS[:burnin]
+  min_trials OPTS[:min_trials]
+  max_trials OPTS[:max_trials]
+  iters_per_trial OPTS[:iters_per_trial]
+  bare OPTS[:bare]
 
-process1 = process_type.new command1, :debug => OPTS[:debug1]
-process2 = process_type.new command2, :debug => OPTS[:debug2]
-
-# Burn-in
-if OPTS[:burnin] > 0
-  puts "Beginning #{OPTS[:burnin]} iterations of burn-in for each process."
-  process1.run_iters OPTS[:burnin]
-  process2.run_iters OPTS[:burnin]
+  report_command command1
+  report_command command2
 end
 
-puts "Beginning sampling from processes."
-
-# Sampling
-samples_so_far = 0
-# Statsample Vectors
-results1 = []
-results2 = []
-p_val = 1.0
-OPTS[:max_trials].times do |i|
-  # Add a sample to each set, with the total time for :iters_per_trial iterations.
-  results1 += process1.run_iters(OPTS[:iters_per_trial])
-  results2 += process2.run_iters(OPTS[:iters_per_trial])
-
-  # No t-test without 3+ samples
-  if results1.size > 2
-    # Evaluate the Welch's t-test
-    t = Statsample::Test.t_two_samples_independent(results1.to_vector, results2.to_vector)
-    p_val = t.probability_not_equal_variance
-    puts "Trial #{i + 1}, Welch's T-test p value: #{p_val.inspect}"
-  end
-
-  # Just finished trial number i+1. So we can exit only if i+1 was at least
-  # the minimum number of trials.
-  break if p_val < OPTS[:pvalue] && (i + 1 >= OPTS[:min_trials])
-end
-
+state = bm_inst.run_sampling
+p_val = state[:p_tests][-1]
 diverged = false
-
-if p_val < OPTS[:pvalue]
+if p_val < bm_inst.p_value
   puts "Based on measured P value #{p_val}, we believe there is a speed difference."
   puts "As of end of run, p value is #{p_val}. Now run more times to check, or with lower p."
 
-  summary11 = ABProf.summarize("mean", results1)
-  summary12 = ABProf.summarize("median", results1)
-  summary21 = ABProf.summarize("mean", results2)
-  summary22 = ABProf.summarize("median", results2)
+  summary11 = ABProf.summarize("mean", state[:samples][0])
+  summary12 = ABProf.summarize("median", state[:samples][0])
+  summary21 = ABProf.summarize("mean", state[:samples][1])
+  summary22 = ABProf.summarize("median", state[:samples][1])
 
   fastest = "1"
-  command = command1
+  command = bm_inst.reports[0]
   mean_times = summary21 / summary11
   median_times = summary22 / summary12
   if summary11 > summary21
     fastest = "2"
-    command = command2
+    command = bm_inst.reports[1]
     mean_times = summary11 / summary21
     median_times = summary12 / summary22
   end
 
   puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
   puts "Lower command is (very) roughly #{median_times} times lower (faster?) -- assuming linear sampling."
+
+  print "\n"
+  puts "Process 1 mean result: #{summary11}"
+  puts "Process 1 median result: #{summary12}"
+  puts "Process 2 mean result: #{summary21}"
+  puts "Process 2 median result: #{summary22}"
 else
-  puts "Based on measured P value #{p_val} and threshold #{OPTS[:pvalue]}, we believe there is"
+  puts "Based on measured P value #{p_val} and threshold #{bm_inst.pvalue}, we believe there is"
   puts "no significant difference detectable with this set of trials."
   puts "If you believe there is a small difference that wasn't detected, try raising the number"
   puts "of iterations per trial, or the maximum number of trials."
   diverged = true
 end
 
-puts "Process 1 mean result: #{summary11}"
-puts "Process 1 median result: #{summary12}"
-puts "Process 2 mean result: #{summary21}"
-puts "Process 2 median result: #{summary22}"
-
 if OPTS[:print_samples]
-  puts "Samples for P1: #{results1.inspect}"
-  puts "Samples for P2: #{results2.inspect}"
+  puts "Samples for P1: #{state[:samples][0].inspect}"
+  puts "Samples for P2: #{state[:samples][1].inspect}"
 end
-
-# Clean up processes
-process1.kill
-process2.kill
 
 exit 2 if diverged && OPTS[:fail_on_divergence]
 
