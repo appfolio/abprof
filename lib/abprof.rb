@@ -19,7 +19,7 @@ module ABProf
   end
 
   # These are primarily for DSL use.
-  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin, :bare ]
+  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin, :bare, :fail_on_divergence ]
 
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
@@ -198,6 +198,7 @@ module ABProf
         @out_reader.close
         @in_writer.close
         if command_line.respond_to?(:call)
+          puts "Caution! An ABProf Harness process (non-bare) is being used with a block. This is almost never what you want!"
           command_line.call
         elsif command_line.respond_to?(:to_s)
           exec command_line.to_s

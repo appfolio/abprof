@@ -92,6 +92,13 @@ module ABProf
       @process2.kill
 
       print_summary opts unless opts[:no_print_summary]
+
+      p_val = @state[:p_tests][-1]
+      if p_val >= @pvalue && @fail_on_divergence
+        STDERR.puts "Measured P value of #{p_val.inspect} is higher than allowable P value of #{@pvalue.inspect}!"
+        exit 2
+      end
+
       @state
     end
 
@@ -145,7 +152,7 @@ module ABProf
     unless opts[:no_at_exit]
       at_exit do
         puts "Exit handler" if opts[:print_output]
-        c.run_sampling(:print_output => opts[:print_output])
+        c.run_sampling opts
       end
     end
 

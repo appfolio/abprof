@@ -1,6 +1,6 @@
 require "abprof/benchmark_dsl"
 
-ABProf.compare do
+ABProf.compare(:print_output => false, :no_print_summary => true) do
   warmup 10
   max_trials 5
   min_trials 3

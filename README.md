@@ -1,4 +1,4 @@
-# Abprof
+# ABProf
 
 ABProf attempts to use simple A/B test statistical logic and apply it
 to the question, "which of these two programs is faster?"
@@ -94,6 +94,59 @@ See the examples directory for more. For instance:
 
 If abprof is just in the source directory and not installed as a gem,
 you should add RUBYLIB="lib" before "abprof" above to get it to run.
+
+### Quick Start - Benchmark DSL
+
+Want to make a benchmark reproducible? Want better accuracy? ABProf
+has a DSL (Domain-Specific Language) that can help here.
+
+Here's a simple example:
+
+    require "abprof/benchmark_dsl"
+
+    ABProf.compare do
+      warmup 10
+      max_trials 5
+      min_trials 3
+      p_value 0.01
+      iters_per_trial 2
+      bare true
+
+      report do
+        10_000.times {}
+      end
+
+      report do
+        sleep 0.1
+      end
+
+    end
+
+Note that "warmup" is a synonym for "burnin" here -- iterations done
+before ABProf starts measuring and comparing. The "report" blocks are
+run for the sample. You can also have a "report_command", which takes
+a string as an argument and uses that to take a measurement.
+
+### A Digression - Bare and Harness
+
+"Harness" refers to ABProf's internal testing protocol, used to allow
+multiple processes to communicate. A "harness process" or "harness
+worker" means a second process that is used to take measurements, and
+can do so repeatedly without having to restart the process.
+
+A "bare process" means one where the work is run directly. Either a
+new process is spawned for each measurement (slow, inaccurate) or a
+block is run in the same Ruby process (potential for inadvertent
+cross-talk.)
+
+In general, for a "harness" process you'll need to put together a .rb
+file similar to examples/sleep.rb or examples/for\_loop_10k.rb.
+
+You can use the DSL above for either bare or harness processes ("bare
+true" or "bare false") without a problem. But if you tell it to use a
+harness, the process in question should be reading ABProf commands
+from STDIN and writing responses to STDOUT in ABProf protocol,
+normally by using the Ruby Test Harness library.
 
 ### Don't Cross the Streams
 

@@ -65,6 +65,7 @@ bm_inst = ABProf.compare(:no_at_exit => true) do
   max_trials OPTS[:max_trials]
   iters_per_trial OPTS[:iters_per_trial]
   bare OPTS[:bare]
+  # No fail_on_divergence - we do this manually for the CLI utilities
 
   report_command command1
   report_command command2

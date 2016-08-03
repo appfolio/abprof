@@ -31,4 +31,14 @@ class AbprofTest < Minitest::Test
     system "cd #{ROOT_DIR} && RUBYLIB=lib ./exe/abcompare --fail-on-divergence --pvalue=0.05 --min-trials=20 --max-trials=20 --iters-per-trial=1 'echo bob' 'sleep 0.1' 2>&1 >> /dev/null"
     assert $?.success?
   end
+
+  def test_dsl_with_blocks
+    system "cd #{ROOT_DIR} && RUBYLIB=lib ruby test/dsl/simple_diverge.rb"
+    assert_equal 2, $?.exitstatus
+  end
+
+  def test_dsl_with_commands
+    system "cd #{ROOT_DIR} && RUBYLIB=lib ruby test/dsl/simple_converge.rb"
+    assert $?.success?
+  end
 end
