@@ -148,19 +148,28 @@ module ABProf
     end
 
     def run_iters(n)
-      t_start = Time.now
+      t_start = t_end = nil
       debug "Controller of #{@pid}: #{n} ITERS"
 
       state = :succeeded
       n.times do
-        system(@command)
-        unless $?.success?
-          STDERR.puts "Failing process #{@pid} after failed iteration(s), error code #{state.inspect}"
-          # How to handle error with no self.kill?
-          raise "Failure from command #{@command.inspect}, dying!"
+        if @command.respond_to?(:call)
+          t_start = Time.now
+          @command.call
+          t_end = Time.now
+        elsif @command.respond_to?(:to_s)
+          t_start = Time.now
+          system(@command.to_s)
+          t_end = Time.now
+          unless $?.success?
+            STDERR.puts "Failing process #{@pid} after failed iteration(s), error code #{state.inspect}"
+            # How to handle error with no self.kill?
+            raise "Failure from command #{@command.inspect}, dying!"
+          end
+        else
+          raise "Don't know how to execute bare object: #{@command.inspect}!"
         end
       end
-      t_end = Time.now
       @last_run = [(t_end - t_start).to_f]
       @last_iters = n
 
@@ -188,7 +197,14 @@ module ABProf
         STDIN.reopen(@in_reader)
         @out_reader.close
         @in_writer.close
-        exec command_line
+        if command_line.respond_to?(:call)
+          command_line.call
+        elsif command_line.respond_to?(:to_s)
+          exec command_line.to_s
+        else
+          raise "Don't know how to execute benchmark code: #{command_line.inspect}!"
+        end
+        exit! 0
       end
       @out_writer.close
       @in_reader.close
@@ -209,12 +225,12 @@ module ABProf
     end
 
     def run_iters(n)
-      t_start = Time.now
       debug "Controller of #{@pid}: #{n} ITERS"
       @in_writer.write "ITERS #{n.to_i}\n"
 
       ignored_out = 0
       state = :failed
+      t_start = Time.now
       loop do
         # Read and block
         output = @out_reader.gets

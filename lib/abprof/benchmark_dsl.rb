@@ -91,9 +91,49 @@ module ABProf
       @process1.kill
       @process2.kill
 
+      print_summary opts unless opts[:no_print_summary]
       @state
     end
 
+    def print_summary(opts = {})
+      p_val = @state[:p_tests][-1]
+      diverged = false
+      if p_val < @pvalue
+        puts "Based on measured P value #{p_val}, we believe there is a speed difference."
+        puts "As of end of run, p value is #{p_val}. Now run more times to check, or with lower p."
+
+        summary11 = ABProf.summarize("mean", @state[:samples][0])
+        summary12 = ABProf.summarize("median", @state[:samples][0])
+        summary21 = ABProf.summarize("mean", @state[:samples][1])
+        summary22 = ABProf.summarize("median", @state[:samples][1])
+
+        fastest = "1"
+        command = @reports[0]
+        mean_times = summary21 / summary11
+        median_times = summary22 / summary12
+        if summary11 > summary21
+          fastest = "2"
+          command = @reports[1]
+          mean_times = summary11 / summary21
+          median_times = summary12 / summary22
+        end
+
+        puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
+        puts "Lower command is (very) roughly #{median_times} times lower (faster?) -- assuming linear sampling."
+
+        print "\n"
+        puts "Process 1 mean result: #{summary11}"
+        puts "Process 1 median result: #{summary12}"
+        puts "Process 2 mean result: #{summary21}"
+        puts "Process 2 median result: #{summary22}"
+      else
+        puts "Based on measured P value #{p_val} and threshold #{@pvalue}, we believe there is"
+        puts "no significant difference detectable with this set of trials."
+        puts "If you believe there is a small difference that wasn't detected, try raising the number"
+        puts "of iterations per trial, or the maximum number of trials."
+        diverged = true
+      end
+    end
   end
 
   def self.compare(opts = {}, &block)
@@ -102,9 +142,10 @@ module ABProf
 
     raise "A DSL file must declare exactly two reports!" unless c.reports.size == 2
 
-    if opts[:run_sampling_at_exit]
-      on_exit do
-        run_sampling(:print_output => opts[:print_output])
+    unless opts[:no_at_exit]
+      at_exit do
+        puts "Exit handler" if opts[:print_output]
+        c.run_sampling(:print_output => opts[:print_output])
       end
     end
 

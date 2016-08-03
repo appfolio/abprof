@@ -58,7 +58,7 @@ command1, command2 = ARGV
 
 # Create DSL configuration for known properties,
 # but don't actually run the sampling yet.
-bm_inst = ABProf.compare(:run_sampling_at_exit => false) do
+bm_inst = ABProf.compare(:no_at_exit => true) do
   pvalue OPTS[:pvalue]
   burnin OPTS[:burnin]
   min_trials OPTS[:min_trials]
