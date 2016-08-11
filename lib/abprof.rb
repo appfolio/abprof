@@ -43,7 +43,7 @@ module ABProf
       @return = :per_iteration
     end
 
-    def self.n_interations_with_return_value(&block)
+    def self.n_iterations_with_return_value(&block)
       @iter_block = block
       @return = :per_n_iterations
     end
