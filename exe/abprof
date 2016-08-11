@@ -65,13 +65,14 @@ bm_inst = ABProf.compare(:no_at_exit => true) do
   max_trials OPTS[:max_trials]
   iters_per_trial OPTS[:iters_per_trial]
   bare OPTS[:bare]
+  debug OPTS[:debug]
   # No fail_on_divergence - we do this manually for the CLI utilities
 
   report_command command1
   report_command command2
 end
 
-state = bm_inst.run_sampling
+state = bm_inst.run_sampling :no_print_summary => true
 p_val = state[:p_tests][-1]
 diverged = false
 if p_val < bm_inst.p_value
