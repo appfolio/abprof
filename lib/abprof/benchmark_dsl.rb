@@ -49,7 +49,7 @@ module ABProf
       @process2.run_iters @burnin
     end
 
-    def run_one_iteration(pts = {})
+    def run_one_trial(pts = {})
       @state[:samples][0] += @process1.run_iters @iters_per_trial
       @state[:samples][1] += @process2.run_iters @iters_per_trial
       @state[:iter] += 1
@@ -63,7 +63,6 @@ module ABProf
       @process1 = process_type.new command1, :debug => @debug
       @process2 = process_type.new command2, :debug => @debug
 
-      puts "Beginning #{@burnin} iterations of burn-in for each process." if opts[:print_output]
       run_burnin opts
 
       puts "Beginning sampling from processes." if opts[:print_output]
@@ -71,7 +70,7 @@ module ABProf
       # Sampling
       p_val = 1.0
       @max_trials.times do
-        run_one_iteration opts
+        run_one_trial opts
 
         # No t-test without 3+ samples
         if @state[:samples][0].size > 2

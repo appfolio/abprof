@@ -11,13 +11,6 @@ require "multi_json"
 #     QUIT requires no response.
 
 module ABProf
-  def self.debug
-    @debug
-  end
-  def self.debug=(new_val)
-    @debug = new_val
-  end
-
   # These are primarily for DSL use.
   PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin, :bare, :fail_on_divergence ]
 
@@ -27,10 +20,10 @@ module ABProf
   # processes.
   class ABWorker
     def debug string
-      STDERR.puts(string) if ABProf.debug
+      STDERR.puts(string) if ENV['ABDEBUG'] == "true"
     end
     def self.debug string
-      STDERR.puts(string) if ABProf.debug
+      STDERR.puts(string) if ENV['ABDEBUG'] == "true"
     end
 
     def self.iteration(&block)
@@ -49,7 +42,7 @@ module ABProf
     end
 
     def self.run_n(n)
-      debug "WORKER #{Process.pid}: running #{n} times"
+      debug "WORKER #{Process.pid}: running #{n} times [#{@return.inspect}]"
 
       case @return
       when :none
@@ -64,10 +57,12 @@ module ABProf
         value = @iter_block.call(n)
         if value.respond_to?(:each)
           # Return array of numbers
-          STDOUT.write "VALUES #{value.to_a.inspect}"
+          debug "WORKER #{Process.pid}: Sent to controller: VALUES #{value.to_a.inspect}"
+          STDOUT.write "VALUES #{value.to_a.inspect}\n"
         else
           # Return single number
-          STDOUT.write "VALUE #{value.to_f}"
+          debug "WORKER #{Process.pid}: Sent to controller: VALUE #{value.to_f}"
+          STDOUT.write "VALUE #{value.to_f}\n"
         end
       else
         raise "Unknown @return value #{@return.inspect} inside abprof!"
@@ -131,7 +126,7 @@ module ABProf
     attr_reader :last_iters
 
     def debug string
-      STDERR.puts(string) if @debug && ABProf.debug
+      STDERR.puts(string) if @debug
     end
 
     def initialize command_line, opts = {}
@@ -182,7 +177,7 @@ module ABProf
     attr_reader :last_iters
 
     def debug string
-      STDERR.puts(string) if @debug && ABProf.debug
+      STDERR.puts(string) if @debug
     end
 
     def initialize command_line, opts = {}
@@ -191,14 +186,18 @@ module ABProf
       @out_reader, @out_writer = IO.pipe
       @in_writer.sync = true
       @out_writer.sync = true
+      @debug = opts[:debug]
 
       @pid = fork do
         STDOUT.reopen(@out_writer)
         STDIN.reopen(@in_reader)
         @out_reader.close
         @in_writer.close
+
+        ENV['ABDEBUG'] = @debug.inspect
+
         if command_line.respond_to?(:call)
-          puts "Caution! An ABProf Harness process (non-bare) is being used with a block. This is almost never what you want!"
+          STDERR.puts "Caution! An ABProf Harness process (non-bare) is being used with a block. This is almost never what you want!"
           command_line.call
         elsif command_line.respond_to?(:to_s)
           exec command_line.to_s
@@ -210,7 +209,6 @@ module ABProf
       @out_writer.close
       @in_reader.close
 
-      @debug = opts[:debug]
       debug "Controller spawned #{@pid} (debug: #{@debug.inspect})"
     end
 
@@ -236,7 +234,6 @@ module ABProf
         # Read and block
         output = @out_reader.gets
         ignored_out += output.length
-        puts "Controller of #{@pid} out: #{output.inspect}" if @debug
         debug "Controller of #{@pid} out: #{output.inspect}"
         if output =~ /^VALUES/ # These anchors match newlines, too
           state = :succeeded
@@ -244,25 +241,26 @@ module ABProf
           raise "Must return an array value from iterations!" unless vals.is_a?(Array)
           raise "Must return an array of numbers from iterations!" unless vals[0].is_a?(Numeric)
           @last_run = vals
+          break
         elsif output =~ /^VALUE/ # These anchors match newlines, too
           state = :succeeded
           val = output[6..-1].to_f
           raise "Must return a number from iterations!" unless val.is_a?(Numeric)
           @last_run = [ val ]
+          break
         elsif output =~ /^OK$/   # These anchors match newlines, too
           state = :succeeded_get_time
           break
-        end
-        if output =~ /^NOT OK$/ # These anchors match newlines, too
+        elsif output =~ /^NOT OK$/ # These anchors match newlines, too
           # Failed, break
           state = :explicit_not_ok
           break
-        end
-        if ignored_out > 10_000
+        elsif ignored_out > 10_000
           # 10k of output and no OK? Bail with failed state.
           state = :too_much_output_without_status
           break
         end
+        # None of these? Loop again.
       end
       t_end = Time.now
       unless [:succeeded, :succeeded_get_time].include?(state)

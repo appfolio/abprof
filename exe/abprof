@@ -37,8 +37,7 @@ once.
 A p value is often interpreted as the probability we got a wrong answer.
 That's an oversimplification, but not (usually) a terrible one.
 BANNER
-  opt :debug1,      "Print first-process output to console"
-  opt :debug2,      "Print second-process output to console"
+  opt :debug,       "Print more output to console"
   opt :bare,        "Use bare command-line commands, no Ruby harness", :default => ($0["compare"])
   opt :pvalue,      "P value (certainty) for Welch's T test", :default => 0.05
   opt :burnin,      "'Burn in' repetitions before real trials",  :default => 10
