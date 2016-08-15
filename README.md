@@ -252,6 +252,27 @@ statistical test will help filter out random test-setup noise
 somewhat, but sometimes it's best to not count the noise in your
 measurement at all, for many good reasons.
 
+Note: this technique has some subtleties -- you're better off *not*
+doing this to rapidly collect many, many samples of very small
+performance differences, because transient conditions like background
+processes can skew the results a *lot* when many T-test samples are
+collected in a short time. You're much better off running the same
+operation many times and returning the cumulative value in those
+cases, or otherwise controlling for transient conditions that drift
+over time.
+
+In those cases, either set the iters-per-trial very low (likely to 1)
+so that both processes are getting the benefit/penalty from transient
+background conditions, or set the number of iterations per trial very
+high so that each trial takes several seconds or longer, to allow
+transient conditions to pass.
+
+ABProf also runs the two processes' iterations in a random order by
+default, starting from one process or the other based on a per-trial
+random number. This helps a little, but only a little. If you *don't*
+want ABProf to do that for some reason, turn on the static_order
+option to get simple "process1 then process2" order for every trial.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install
