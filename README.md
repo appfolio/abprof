@@ -234,32 +234,45 @@ Of course, if your test is *really* slow, or you're trying to detect a
 very small difference, it can just take a really long time. Like A/B
 testing, this method has its pitfalls.
 
-### More Control
+### More Control of Sampling
 
 Would you like to explicitly return the value(s) to compare? You can
-replace the "iteration" block above with "iteration\_with\_return\_value"
-or "n\_iterations\_with\_return\_value". In the former case, return a
-single number at then end of the block, which is the measured value
-specifically for that time through the loop. In the latter case, your
-block will take a single parameter N for the number of iterations -
-run the code that many times and return either a single measured speed
-or time, or an array of speeds or times, which will be your samples.
+replace the "iteration" block above with
+"iteration\_with\_return\_value" to return a measurement of your
+choice. That allows you to do setup or teardown inside the block that
+isn't necessarily counted in the total time. You can also use a custom
+counter or timer rather than Ruby's Time.now, which is the default for
+ABProf.
 
-This can be useful when running N iterations doesn't necessarily
-generate exactly N results, or when the time the whole chunk of code
-takes to run isn't the most representative number for performance. The
-statistical test will help filter out random test-setup noise
-somewhat, but sometimes it's best to not count the noise in your
-measurement at all, for many good reasons.
+If you return a higher-is-better value like a counter rather than a
+lower-is-better value like time, you'll find that ABProf keeps telling
+you the *lower*-valued process, which may be slower rather than
+faster. ABProf can tell which one gets lower numbers, but it doesn't
+know whether that means better or worse.
+
+That's why the console output shows the word "faster?" with a question
+mark. It knows it's giving you lower. It hopes that means faster.
+
+### More Samples Per Trial
+
+Would you like to control how the N iterations (default 10) per trial
+get run? Want to do setup or teardown before or after them as a group,
+not individuall?
+
+Replace the "iteration" block above with
+"n\_iterations\_with\_return\_value". Your block will take a single
+parameter N for the number of iterations - run the code that many
+times and return either a single measured speed or time, or an array
+of speeds or times, which will be your samples.
 
 Note: this technique has some subtleties -- you're better off *not*
 doing this to rapidly collect many, many samples of very small
-performance differences, because transient conditions like background
-processes can skew the results a *lot* when many T-test samples are
-collected in a short time. You're much better off running the same
-operation many times and returning the cumulative value in those
-cases, or otherwise controlling for transient conditions that drift
-over time.
+performance differences. If you do, transient conditions like
+background processes can skew the results a *lot* when many T-test
+samples are collected in a short time. You're much better off running
+the same operation many times and returning the cumulative value in
+those cases, or otherwise controlling for transient conditions that
+drift over time.
 
 In those cases, either set the iters-per-trial very low (likely to 1)
 so that both processes are getting the benefit/penalty from transient
