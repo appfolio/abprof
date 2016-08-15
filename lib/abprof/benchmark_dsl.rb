@@ -20,6 +20,7 @@ module ABProf
       @max_trials = 20
       @iters_per_trial = 10
       @bare = false
+      @static_order = false
 
       @state = {
         :samples => [[], []],
@@ -50,8 +51,15 @@ module ABProf
     end
 
     def run_one_trial(pts = {})
-      @state[:samples][0] += @process1.run_iters @iters_per_trial
-      @state[:samples][1] += @process2.run_iters @iters_per_trial
+      order_rand = (rand() * 2.0).to_i
+      if @static_order || order_rand == 0
+        @state[:samples][0] += @process1.run_iters @iters_per_trial
+        @state[:samples][1] += @process2.run_iters @iters_per_trial
+      else
+        # Same thing, but do process2 first
+        @state[:samples][1] += @process2.run_iters @iters_per_trial
+        @state[:samples][0] += @process1.run_iters @iters_per_trial
+      end
       @state[:iter] += 1
     end
 
@@ -78,7 +86,11 @@ module ABProf
           t = Statsample::Test.t_two_samples_independent(@state[:samples][0].to_vector, @state[:samples][1].to_vector)
           p_val = t.probability_not_equal_variance
           @state[:p_tests].push p_val
-          puts "Trial #{@state[:iter]}, Welch's T-test p value: #{p_val.inspect}" if opts[:print_output]
+          avg_1 = @state[:samples][0].inject(0.0, &:+) / @state[:samples][0].length
+          avg_2 = @state[:samples][1].inject(0.0, &:+) / @state[:samples][1].length
+          smaller = "1"
+          smaller = "2" if avg_1 > avg_2
+          puts "Trial #{@state[:iter]}, Welch's T-test p value: #{p_val.inspect}   (Guessed smaller: #{smaller})" if opts[:print_output]
         end
 
         # Just finished trial number i+1. So we can exit only if i+1 was at least
@@ -117,7 +129,7 @@ module ABProf
         command = @reports[0]
         mean_times = summary21 / summary11
         median_times = summary22 / summary12
-        if summary11 > summary21
+        if summary12 > summary22
           fastest = "2"
           command = @reports[1]
           mean_times = summary11 / summary21
@@ -125,7 +137,8 @@ module ABProf
         end
 
         puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
-        puts "Lower command is (very) roughly #{median_times} times lower (faster?) -- assuming linear sampling."
+        puts "Lower command is (very) roughly #{median_times} times lower (faster?) -- assuming linear sampling, checking at median."
+        puts "         Checking at mean, it would be #{mean_times} lower (faster?)."
 
         print "\n"
         puts "Process 1 mean result: #{summary11}"

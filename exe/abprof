@@ -46,6 +46,7 @@ BANNER
   opt :iters_per_trial, "Iterations per sample set", :default => 10
   opt :print_samples, "Print all sample values for later analysis.", :default => false
   opt :fail_on_divergence, "Return a non-zero code if pvalue is greater than specified."
+  opt :static_order, "Don't randomize the order of sampled processes per trial."
 end
 
 if ARGV.length != 2
@@ -65,56 +66,21 @@ bm_inst = ABProf.compare(:no_at_exit => true) do
   iters_per_trial OPTS[:iters_per_trial]
   bare OPTS[:bare]
   debug OPTS[:debug]
+  static_order OPTS[:static_order]
   # No fail_on_divergence - we do this manually for the CLI utilities
 
   report_command command1
   report_command command2
 end
 
-state = bm_inst.run_sampling :no_print_summary => true
+state = bm_inst.run_sampling(:print_output => true)
 p_val = state[:p_tests][-1]
-diverged = false
-if p_val < bm_inst.p_value
-  puts "Based on measured P value #{p_val}, we believe there is a speed difference."
-  puts "As of end of run, p value is #{p_val}. Now run more times to check, or with lower p."
-
-  summary11 = ABProf.summarize("mean", state[:samples][0])
-  summary12 = ABProf.summarize("median", state[:samples][0])
-  summary21 = ABProf.summarize("mean", state[:samples][1])
-  summary22 = ABProf.summarize("median", state[:samples][1])
-
-  fastest = "1"
-  command = bm_inst.reports[0]
-  mean_times = summary21 / summary11
-  median_times = summary22 / summary12
-  if summary11 > summary21
-    fastest = "2"
-    command = bm_inst.reports[1]
-    mean_times = summary11 / summary21
-    median_times = summary12 / summary22
-  end
-
-  puts "Lower (faster?) process is #{fastest}, command line: #{command.inspect}"
-  puts "Lower command is (very) roughly #{median_times} times lower (faster?) -- assuming linear sampling."
-
-  print "\n"
-  puts "Process 1 mean result: #{summary11}"
-  puts "Process 1 median result: #{summary12}"
-  puts "Process 2 mean result: #{summary21}"
-  puts "Process 2 median result: #{summary22}"
-else
-  puts "Based on measured P value #{p_val} and threshold #{bm_inst.pvalue}, we believe there is"
-  puts "no significant difference detectable with this set of trials."
-  puts "If you believe there is a small difference that wasn't detected, try raising the number"
-  puts "of iterations per trial, or the maximum number of trials."
-  diverged = true
-end
 
 if OPTS[:print_samples]
   puts "Samples for P1: #{state[:samples][0].inspect}"
   puts "Samples for P2: #{state[:samples][1].inspect}"
 end
 
-exit 2 if diverged && OPTS[:fail_on_divergence]
+exit 2 if (p_val >= bm_inst.p_value) && OPTS[:fail_on_divergence]
 
 # Otherwise, return success

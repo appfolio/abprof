@@ -12,7 +12,7 @@ require "multi_json"
 
 module ABProf
   # These are primarily for DSL use.
-  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin, :bare, :fail_on_divergence ]
+  PROPERTIES = [ :debug, :pvalue, :iters_per_trial, :min_trials, :max_trials, :burnin, :bare, :fail_on_divergence, :static_order ]
 
   # This class is used by programs that are *being* profiled.
   # It's necessarily a singleton since it needs to control STDIN.
