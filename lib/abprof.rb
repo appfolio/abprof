@@ -52,7 +52,7 @@ module ABProf
         STDOUT.write "OK\n"
       when :per_iteration
         values = (0..(n-1)).map { |i| @iter_block.call.to_f }
-        STDOUT.write "VALUES #{values.inspect}"
+        STDOUT.write "VALUES #{values.inspect}\n"
       when :per_n_iterations
         value = @iter_block.call(n)
         if value.respond_to?(:each)
