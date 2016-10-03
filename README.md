@@ -16,6 +16,17 @@ set of measured runtimes to determine how likely the two programs are
 to be different from each other, and after the P value is low enough,
 we give our current estimate of which is faster and by how much.
 
+Want a nice "getting started" introduction? Here are the original blog
+posts on using ABProf.
+
+* <a href="https://appfolio-engineering.squarespace.com/appfolio-engineering/2016/7/18/profiling-ruby-like-an-ab-tester">Profiling Ruby Like an A/B Tester</a>
+* <a href="https://appfolio-engineering.squarespace.com/appfolio-engineering/2016/8/8/abprof-an-accurate-statistical-profiling-harness">ABProf: An Accurate Statistical Profiling Harness</a>
+
+For more about the subtleties of profiling in general, may I recommend
+<a href="https://www.youtube.com/watch?v=kJDOpucaUR4">Matthew Gaudet's
+wonderful talk "Ruby 3x3: How Will Are We Going To Measure 3X?"  from
+RubyKaigi 2016?</a>
+
 ## Installation
 
 Add this line to your application's Gemfile:
