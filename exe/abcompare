@@ -1,1 +1,86 @@
-abprof
+#!/usr/bin/env ruby
+
+require "trollop"
+require "abprof"
+require "abprof/benchmark_dsl"
+
+OPTS = Trollop::options do
+  banner <<BANNER
+Specify a first and second command line, and (often) a p-value or other
+parameters.
+
+Example:  #{$0} examples/sleep.rb examples/sleep_longer.rb
+
+The first and second commands are the first two arguments. You'll need to
+quote multi-word commands, as is normal in bash.
+
+Specifying lots of iterations and trials, high burn-in and a low P value
+is accurate, but slow.
+
+Specifying low iterations, trials and burn-in and a high P value gives
+quick, rough results early on.
+
+Specifying more iterations per trial is good for highly variable iteration
+timing.
+
+Specifying a lower max number of trials keeps the test from running *too*
+long when the two are identical.
+
+Specifying a high burn-in is necessary when cache behavior changes timing
+significantly.
+
+Vast numbers of trials can nearly always occasionally show differences
+*somewhere* along the line, just by random chance. To avoid this, pick how
+many samples first, run them all in one go, and then just check the p value
+once.
+
+A p value is often interpreted as the probability we got a wrong answer.
+That's an oversimplification, but not (usually) a terrible one.
+BANNER
+  opt :debug,       "Print more output to console"
+  opt :bare,        "Use bare command-line commands, no Ruby harness", :default => ($0["compare"])
+  opt :pvalue,      "P value (certainty) for Welch's T test", :default => 0.05
+  opt :burnin,      "'Burn in' repetitions before real trials",  :default => 10
+  opt :min_trials,  "Minimum number of sample sets from each process", :default => 1
+  opt :max_trials,  "Maximum number of sample sets from each process", :default => 20
+  opt :iters_per_trial, "Iterations per sample set", :default => 10
+  opt :print_samples, "Print all sample values for later analysis.", :default => false
+  opt :fail_on_divergence, "Return a non-zero code if pvalue is greater than specified."
+  opt :static_order, "Don't randomize the order of sampled processes per trial."
+end
+
+if ARGV.length != 2
+  puts "Must specify both commands as normal arguments!"
+  exit -1
+end
+
+command1, command2 = ARGV
+
+# Create DSL configuration for known properties,
+# but don't actually run the sampling yet.
+bm_inst = ABProf.compare(:no_at_exit => true) do
+  pvalue OPTS[:pvalue]
+  burnin OPTS[:burnin]
+  min_trials OPTS[:min_trials]
+  max_trials OPTS[:max_trials]
+  iters_per_trial OPTS[:iters_per_trial]
+  bare OPTS[:bare]
+  debug OPTS[:debug]
+  static_order OPTS[:static_order]
+  # No fail_on_divergence - we do this manually for the CLI utilities
+
+  report_command command1
+  report_command command2
+end
+
+state = bm_inst.run_sampling(:print_output => true)
+p_val = state[:p_tests][-1]
+
+if OPTS[:print_samples]
+  puts "Samples for P1: #{state[:samples][0].inspect}"
+  puts "Samples for P2: #{state[:samples][1].inspect}"
+end
+
+exit 2 if (p_val >= bm_inst.p_value) && OPTS[:fail_on_divergence]
+
+# Otherwise, return success
